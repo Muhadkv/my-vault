@@ -8,10 +8,105 @@
   background: var(--ink);
 }
 
+.app-layout {
+  display: flex;
+  flex: 1;
+  min-height: 100%;
+}
+
+.app-main {
+  flex: 1;
+  min-width: 0;
+}
+
 .screen {
   flex: 1;
   padding: 20px 18px calc(var(--nav-height) + 28px);
   overflow-y: auto;
+}
+
+/* ---------- Desktop sidebar (hidden on mobile) ---------- */
+.sidebar { display: none; }
+
+/* ---------- Desktop layout ---------- */
+@media (min-width: 860px) {
+  .app-shell {
+    max-width: none;
+  }
+
+  .bottom-nav { display: none; }
+
+  .sidebar {
+    display: flex;
+    flex-direction: column;
+    width: 240px;
+    flex-shrink: 0;
+    min-height: 100vh;
+    padding: 28px 16px;
+    border-right: 1px solid var(--border);
+    background: var(--surface);
+    position: sticky;
+    top: 0;
+  }
+  .sidebar-brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 0 10px;
+    margin-bottom: 32px;
+  }
+  .sidebar-brand span.display { font-size: 19px; }
+  .sidebar-links { display: flex; flex-direction: column; gap: 4px; }
+  .sidebar-link {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 11px 14px;
+    border-radius: var(--radius-sm);
+    color: var(--text-muted);
+    font-size: 14px;
+    font-weight: 500;
+    transition: background 0.15s ease, color 0.15s ease;
+  }
+  .sidebar-link .icon { font-size: 18px; }
+  .sidebar-link:hover { background: var(--surface-raised); color: var(--text); }
+  .sidebar-link.active { background: var(--surface-raised); color: var(--accent); }
+
+  .screen {
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 44px 40px 60px;
+  }
+
+  .fab {
+    right: calc((100vw - 240px - 760px) / 2 + 20px);
+    bottom: 40px;
+  }
+  @media (max-width: 1240px) {
+    .fab { right: 40px; }
+  }
+
+  .stat-row { gap: 16px; }
+  .stat-card { padding: 20px; }
+  .stat-card .value { font-size: 26px; }
+
+  .top-header, .center-screen { max-width: 480px; }
+
+  .group { border-radius: var(--radius-lg); }
+  .row { padding: 16px 20px; }
+
+  .sheet-overlay { align-items: center; }
+  .sheet {
+    max-width: 440px;
+    border-radius: var(--radius-lg);
+    max-height: 80vh;
+  }
+  .sheet-handle { display: none; }
+
+  h1.display { font-size: 28px !important; }
+
+  .empty-state { padding: 90px 20px; }
+  .empty-state .glyph { font-size: 44px; }
 }
 
 /* ---------- Top header ---------- */
@@ -250,6 +345,14 @@
   flex-direction: column;
   justify-content: center;
   padding: 32px 26px;
+}
+
+@media (min-width: 860px) {
+  .center-screen {
+    max-width: 420px;
+    margin: 0 auto;
+    width: 100%;
+  }
 }
 .brand-mark {
   width: 52px;
