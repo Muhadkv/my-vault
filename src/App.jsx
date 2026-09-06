@@ -7,6 +7,7 @@ import Vault from './pages/Vault'
 import Expenses from './pages/Expenses'
 import Settings from './pages/Settings'
 import BottomNav from './components/BottomNav'
+import Sidebar from './components/Sidebar'
 import './styles/tokens.css'
 import './styles/app.css'
 
@@ -19,15 +20,18 @@ function Gate() {
   if (!isUnlocked) return <Unlock />
 
   return (
-    <>
-      <Routes>
-        <Route path="/vault" element={<Vault />} />
-        <Route path="/expenses" element={<Expenses />} />
-        <Route path="/settings" element={<Settings />} />
-        <Route path="*" element={<Navigate to="/vault" replace />} />
-      </Routes>
+    <div className="app-layout">
+      <Sidebar />
+      <div className="app-main">
+        <Routes>
+          <Route path="/vault" element={<Vault />} />
+          <Route path="/expenses" element={<Expenses />} />
+          <Route path="/settings" element={<Settings />} />
+          <Route path="*" element={<Navigate to="/vault" replace />} />
+        </Routes>
+      </div>
       <BottomNav />
-    </>
+    </div>
   )
 }
 
