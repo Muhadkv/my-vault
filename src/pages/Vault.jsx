@@ -1,0 +1,172 @@
+import { useEffect, useState } from 'react'
+import { supabase } from '../lib/supabaseClient'
+import { useAuth } from '../context/AuthContext'
+import { useVault } from '../context/VaultContext'
+import CategorySheet from '../components/CategorySheet'
+import PasswordFormSheet from '../components/PasswordFormSheet'
+import PasswordDetailSheet from '../components/PasswordDetailSheet'
+import Toast from '../components/Toast'
+
+export default function Vault() {
+  const { user } = useAuth()
+  const { encrypt, decrypt } = useVault()
+  const [categories, setCategories] = useState([])
+  const [items, setItems] = useState([])
+  const [openCategory, setOpenCategory] = useState(null)
+  const [sheet, setSheet] = useState(null) // 'add-menu' | 'add-category' | 'add-password' | 'edit-password'
+  const [detailItem, setDetailItem] = useState(null)
+  const [editingItem, setEditingItem] = useState(null)
+  const [toast, setToast] = useState('')
+
+  async function loadAll() {
+    const [{ data: cats }, { data: pwItems }] = await Promise.all([
+      supabase.from('categories').select('*').order('created_at'),
+      supabase.from('password_items').select('*').order('created_at', { ascending: false }),
+    ])
+    setCategories(cats || [])
+    setItems(pwItems || [])
+  }
+
+  useEffect(() => { loadAll() }, [])
+
+  async function handleSaveCategory({ name, color, icon }) {
+    const { error } = await supabase.from('categories').insert({ user_id: user.id, name, color, icon })
+    if (!error) {
+      setSheet(null)
+      loadAll()
+      setToast('Category created')
+    }
+  }
+
+  async function handleSavePassword(form) {
+    const encrypted_data = await encrypt({ username: form.username, password: form.password, url: form.url, notes: form.notes })
+    if (editingItem) {
+      await supabase.from('password_items').update({ title: form.title, category_id: form.categoryId, encrypted_data, updated_at: new Date().toISOString() }).eq('id', editingItem.id)
+      setToast('Login updated')
+    } else {
+      await supabase.from('password_items').insert({ user_id: user.id, title: form.title, category_id: form.categoryId, encrypted_data })
+      setToast('Login saved')
+    }
+    setSheet(null)
+    setEditingItem(null)
+    setDetailItem(null)
+    loadAll()
+  }
+
+  async function handleOpenItem(item) {
+    const decrypted = await decrypt(item.encrypted_data)
+    setDetailItem({ ...item, ...decrypted })
+  }
+
+  async function handleDelete(item) {
+    await supabase.from('password_items').delete().eq('id', item.id)
+    setDetailItem(null)
+    setToast('Login deleted')
+    loadAll()
+  }
+
+  const itemsByCategory = (catId) => items.filter((i) => i.category_id === catId)
+
+  return (
+    <div className="screen">
+      <h1 className="display" style={{ fontSize: 22, marginBottom: 4 }}>Vault</h1>
+      <p className="sub" style={{ marginBottom: 18 }}>{items.length} saved login{items.length !== 1 ? 's' : ''} across {categories.length} categories</p>
+
+      {categories.length === 0 && (
+        <div className="empty-state">
+          <div className="glyph">🔐</div>
+          <p>No categories yet. Add one to start saving logins — try "Google" or "Banking".</p>
+        </div>
+      )}
+
+      {categories.map((cat) => {
+        const catItems = itemsByCategory(cat.id)
+        const isOpen = openCategory === cat.id
+        return (
+          <div key={cat.id} style={{ marginBottom: 12 }}>
+            <div className="group">
+              <button className="row" style={{ width: '100%', textAlign: 'left' }} onClick={() => setOpenCategory(isOpen ? null : cat.id)}>
+                <div className="row-icon" style={{ background: cat.color }}>{cat.icon}</div>
+                <div className="row-body">
+                  <div className="row-title">{cat.name}</div>
+                  <div className="row-subtitle">{catItems.length} login{catItems.length !== 1 ? 's' : ''}</div>
+                </div>
+                <span className="row-chevron">{isOpen ? '⌃' : '⌄'}</span>
+              </button>
+            </div>
+            <div className={`category-panel ${isOpen ? 'open' : ''}`}>
+              <div className="category-panel-inner">
+                {catItems.length > 0 && (
+                  <div className="group" style={{ marginTop: 8 }}>
+                    {catItems.map((item) => (
+                      <button key={item.id} className="row" style={{ width: '100%', textAlign: 'left' }} onClick={() => handleOpenItem(item)}>
+                        <div className="row-icon" style={{ background: 'var(--surface-raised)', color: 'var(--text)' }}>🔑</div>
+                        <div className="row-body">
+                          <div className="row-title">{item.title}</div>
+                        </div>
+                        <span className="row-chevron">›</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+                <button className="btn btn-ghost" style={{ marginTop: 8 }} onClick={() => { setEditingItem(null); setSheet({ type: 'add-password', categoryId: cat.id }) }}>
+                  + Add login to {cat.name}
+                </button>
+              </div>
+            </div>
+          </div>
+        )
+      })}
+
+      <button className="fab" onClick={() => setSheet({ type: 'add-menu' })}>+</button>
+
+      {sheet?.type === 'add-menu' && (
+        <div className="sheet-overlay" onClick={() => setSheet(null)}>
+          <div className="sheet" onClick={(e) => e.stopPropagation()}>
+            <div className="sheet-handle" />
+            <h2>Add to vault</h2>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 16 }}>
+              <button className="btn btn-primary" onClick={() => setSheet({ type: 'add-category' })}>New category</button>
+              <button className="btn btn-ghost" disabled={categories.length === 0} onClick={() => setSheet({ type: 'add-password' })}>
+                New login {categories.length === 0 && '(add a category first)'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {sheet?.type === 'add-category' && (
+        <CategorySheet onClose={() => setSheet(null)} onSave={handleSaveCategory} />
+      )}
+
+      {sheet?.type === 'add-password' && (
+        <PasswordFormSheet
+          categories={categories}
+          defaultCategoryId={sheet.categoryId}
+          onClose={() => setSheet(null)}
+          onSave={handleSavePassword}
+        />
+      )}
+
+      {sheet?.type === 'edit-password' && (
+        <PasswordFormSheet
+          categories={categories}
+          initial={editingItem}
+          onClose={() => setSheet(null)}
+          onSave={handleSavePassword}
+        />
+      )}
+
+      {detailItem && (
+        <PasswordDetailSheet
+          item={detailItem}
+          onClose={() => setDetailItem(null)}
+          onEdit={() => { setEditingItem({ id: detailItem.id, title: detailItem.title, categoryId: detailItem.category_id, ...detailItem }); setSheet({ type: 'edit-password' }) }}
+          onDelete={() => handleDelete(detailItem)}
+        />
+      )}
+
+      <Toast message={toast} onDone={() => setToast('')} />
+    </div>
+  )
+}
