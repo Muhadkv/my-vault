@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
 import { useAuth } from '../context/AuthContext'
 import { useVault } from '../context/VaultContext'
+import { EXPENSE_CATEGORIES } from '../lib/categories'
 import Sheet from '../components/Sheet'
 import Toast from '../components/Toast'
 
@@ -169,9 +170,8 @@ export default function Settings() {
 }
 
 function BudgetSheet({ onClose, onSave }) {
-  const [category, setCategory] = useState('Food')
+  const [category, setCategory] = useState(EXPENSE_CATEGORIES[0].name)
   const [limit, setLimit] = useState('')
-  const CATS = ['Food', 'Transport', 'Bills', 'Shopping', 'Health', 'Entertainment', 'Other']
   return (
     <Sheet onClose={onClose}>
       <h2>Set a budget</h2>
@@ -179,7 +179,7 @@ function BudgetSheet({ onClose, onSave }) {
         <div className="field">
           <label>Category</label>
           <select value={category} onChange={(e) => setCategory(e.target.value)}>
-            {CATS.map((c) => <option key={c} value={c}>{c}</option>)}
+            {EXPENSE_CATEGORIES.map((c) => <option key={c.name} value={c.name}>{c.name}</option>)}
           </select>
         </div>
         <div className="field">
