@@ -1,10 +1,9 @@
 import { useState } from 'react'
 import Sheet from './Sheet'
-
-const DEFAULT_CATEGORIES = ['Food', 'Transport', 'Bills', 'Shopping', 'Health', 'Entertainment', 'Other']
+import { EXPENSE_CATEGORIES, noteLabelFor } from '../lib/categories'
 
 export default function ExpenseFormSheet({ onClose, onSave }) {
-  const [category, setCategory] = useState(DEFAULT_CATEGORIES[0])
+  const [category, setCategory] = useState(EXPENSE_CATEGORIES[0].name)
   const [amount, setAmount] = useState('')
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10))
   const [note, setNote] = useState('')
@@ -27,19 +26,19 @@ export default function ExpenseFormSheet({ onClose, onSave }) {
         </div>
         <div className="field">
           <label>Category</label>
-          <div className="chip-row">
-            {DEFAULT_CATEGORIES.map((c) => (
-              <button type="button" key={c} className={`chip ${category === c ? 'active' : ''}`} onClick={() => setCategory(c)}>{c}</button>
+          <select value={category} onChange={(e) => setCategory(e.target.value)}>
+            {EXPENSE_CATEGORIES.map((c) => (
+              <option key={c.name} value={c.name}>{c.name}</option>
             ))}
-          </div>
+          </select>
         </div>
         <div className="field">
           <label>Date</label>
           <input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
         </div>
         <div className="field">
-          <label>Note (optional)</label>
-          <input value={note} onChange={(e) => setNote(e.target.value)} placeholder="What was this for?" />
+          <label>{noteLabelFor(category)} (optional)</label>
+          <input value={note} onChange={(e) => setNote(e.target.value)} placeholder={noteLabelFor(category)} />
         </div>
         <div className="field">
           <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
