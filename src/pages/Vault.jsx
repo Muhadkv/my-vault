@@ -18,6 +18,7 @@ export default function Vault() {
   const [sheet, setSheet] = useState(null) // 'add-menu' | 'add-category' | 'add-password' | 'edit-password'
   const [detailItem, setDetailItem] = useState(null)
   const [editingItem, setEditingItem] = useState(null)
+  const [editingCategory, setEditingCategory] = useState(null)
   const [toast, setToast] = useState('')
   const [query, setQuery] = useState('')
   const [searchParams, setSearchParams] = useSearchParams()
@@ -41,11 +42,21 @@ export default function Vault() {
   useEffect(() => { loadAll() }, [])
 
   async function handleSaveCategory({ name, color, icon }) {
-    const { error } = await supabase.from('categories').insert({ user_id: user.id, name, color, icon })
-    if (!error) {
-      setSheet(null)
-      loadAll()
-      setToast('Category created')
+    if (editingCategory) {
+      const { error } = await supabase.from('categories').update({ name, color, icon }).eq('id', editingCategory.id)
+      if (!error) {
+        setSheet(null)
+        setEditingCategory(null)
+        loadAll()
+        setToast('Category updated')
+      }
+    } else {
+      const { error } = await supabase.from('categories').insert({ user_id: user.id, name, color, icon })
+      if (!error) {
+        setSheet(null)
+        loadAll()
+        setToast('Category created')
+      }
     }
   }
 
@@ -140,6 +151,13 @@ export default function Vault() {
                   <div className="row-title">{cat.name}</div>
                   <div className="row-subtitle">{catItems.length} login{catItems.length !== 1 ? 's' : ''}</div>
                 </div>
+                <span
+                  className="icon-btn"
+                  style={{ padding: 6 }}
+                  onClick={(e) => { e.stopPropagation(); setEditingCategory(cat); setSheet({ type: 'edit-category' }) }}
+                >
+                  ✏️
+                </span>
                 <span className="row-chevron">{isOpen ? '⌃' : '⌄'}</span>
               </button>
             </div>
@@ -177,7 +195,7 @@ export default function Vault() {
             <div className="sheet-handle" />
             <h2>Add to vault</h2>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 16 }}>
-              <button className="btn btn-primary" onClick={() => setSheet({ type: 'add-category' })}>New category</button>
+              <button className="btn btn-primary" onClick={() => { setEditingCategory(null); setSheet({ type: 'add-category' }) }}>New category</button>
               <button className="btn btn-ghost" disabled={categories.length === 0} onClick={() => setSheet({ type: 'add-password' })}>
                 New login {categories.length === 0 && '(add a category first)'}
               </button>
@@ -188,6 +206,10 @@ export default function Vault() {
 
       {sheet?.type === 'add-category' && (
         <CategorySheet onClose={() => setSheet(null)} onSave={handleSaveCategory} />
+      )}
+
+      {sheet?.type === 'edit-category' && (
+        <CategorySheet initial={editingCategory} onClose={() => { setSheet(null); setEditingCategory(null) }} onSave={handleSaveCategory} />
       )}
 
       {sheet?.type === 'add-password' && (
