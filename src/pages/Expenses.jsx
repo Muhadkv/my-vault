@@ -18,6 +18,10 @@ export default function Expenses() {
   const [query, setQuery] = useState('')
   const [searchParams, setSearchParams] = useSearchParams()
 
+  const today = new Date()
+  const [selectedMonth, setSelectedMonth] = useState(today.getMonth())
+  const [selectedYear, setSelectedYear] = useState(today.getFullYear())
+
   useEffect(() => {
     if (searchParams.get('action') === 'add') {
       setShowForm(true)
@@ -36,22 +40,39 @@ export default function Expenses() {
 
   useEffect(() => { loadAll() }, [])
 
-  const now = new Date()
-  const thisMonthExpenses = useMemo(
+  function shiftMonth(delta) {
+    let m = selectedMonth + delta
+    let y = selectedYear
+    if (m < 0) { m = 11; y -= 1 }
+    if (m > 11) { m = 0; y += 1 }
+    setSelectedMonth(m)
+    setSelectedYear(y)
+  }
+
+  const monthLabel = new Date(selectedYear, selectedMonth).toLocaleString('default', { month: 'long', year: 'numeric' })
+  const isCurrentMonth = selectedMonth === today.getMonth() && selectedYear === today.getFullYear()
+
+  const yearOptions = useMemo(() => {
+    const years = new Set(expenses.map((e) => new Date(e.spent_on).getFullYear()))
+    years.add(today.getFullYear())
+    return Array.from(years).sort((a, b) => b - a)
+  }, [expenses])
+
+  const monthExpenses = useMemo(
     () => expenses.filter((e) => {
       const d = new Date(e.spent_on)
-      return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()
+      return d.getMonth() === selectedMonth && d.getFullYear() === selectedYear
     }),
-    [expenses]
+    [expenses, selectedMonth, selectedYear]
   )
 
-  const monthTotal = thisMonthExpenses.reduce((sum, e) => sum + Number(e.amount), 0)
+  const monthTotal = monthExpenses.reduce((sum, e) => sum + Number(e.amount), 0)
 
   const byCategory = useMemo(() => {
     const map = {}
-    thisMonthExpenses.forEach((e) => { map[e.category] = (map[e.category] || 0) + Number(e.amount) })
+    monthExpenses.forEach((e) => { map[e.category] = (map[e.category] || 0) + Number(e.amount) })
     return Object.entries(map).map(([category, total]) => ({ category, total })).sort((a, b) => b.total - a.total)
-  }, [thisMonthExpenses])
+  }, [monthExpenses])
 
   async function handleSaveExpense(form) {
     const encrypted_note = form.note ? await encrypt({ note: form.note }) : null
@@ -75,23 +96,44 @@ export default function Expenses() {
 
   const filteredExpenses = useMemo(() => {
     const q = query.trim().toLowerCase()
-    if (!q) return expenses
-    return expenses.filter((e) => e.category.toLowerCase().includes(q) || String(e.amount).includes(q))
-  }, [query, expenses])
+    if (!q) return monthExpenses
+    return monthExpenses.filter((e) => e.category.toLowerCase().includes(q) || String(e.amount).includes(q))
+  }, [query, monthExpenses])
 
   return (
     <div className="screen">
       <h1 className="display" style={{ fontSize: 22, marginBottom: 4 }}>Expenses</h1>
-      <p className="sub" style={{ marginBottom: 12 }}>{now.toLocaleString('default', { month: 'long', year: 'numeric' })}</p>
+
+      <div className="month-nav">
+        <button className="icon-btn" style={{ fontSize: 20 }} onClick={() => shiftMonth(-1)}>‹</button>
+        <select
+          value={`${selectedYear}-${selectedMonth}`}
+          onChange={(e) => {
+            const [y, m] = e.target.value.split('-').map(Number)
+            setSelectedYear(y)
+            setSelectedMonth(m)
+          }}
+          className="month-select"
+        >
+          {yearOptions.flatMap((y) =>
+            Array.from({ length: 12 }, (_, m) => (
+              <option key={`${y}-${m}`} value={`${y}-${m}`}>
+                {new Date(y, m).toLocaleString('default', { month: 'long' })} {y}
+              </option>
+            ))
+          )}
+        </select>
+        <button className="icon-btn" style={{ fontSize: 20 }} onClick={() => shiftMonth(1)} disabled={isCurrentMonth && false}>›</button>
+      </div>
 
       <div className="stat-row">
         <div className="stat-card">
-          <div className="label">This month</div>
+          <div className="label">{monthLabel}</div>
           <div className="value">{formatMoney(monthTotal)}</div>
         </div>
         <div className="stat-card">
           <div className="label">Transactions</div>
-          <div className="value">{thisMonthExpenses.length}</div>
+          <div className="value">{monthExpenses.length}</div>
         </div>
       </div>
 
@@ -122,14 +164,14 @@ export default function Expenses() {
         </>
       )}
 
-      <div className="group-title">Recent</div>
+      <div className="group-title">{monthLabel}</div>
       <div className="field" style={{ marginBottom: 12 }}>
         <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="🔍 Search by category or amount…" />
       </div>
-      {expenses.length === 0 ? (
+      {monthExpenses.length === 0 ? (
         <div className="empty-state">
           <div className="glyph">💳</div>
-          <p>No expenses logged yet. Tap + to add your first one.</p>
+          <p>No expenses logged for {monthLabel}.</p>
         </div>
       ) : filteredExpenses.length === 0 ? (
         <div className="empty-state">
@@ -138,7 +180,7 @@ export default function Expenses() {
         </div>
       ) : (
         <div className="group">
-          {filteredExpenses.slice(0, 30).map((e) => (
+          {filteredExpenses.map((e) => (
             <div key={e.id} className="row">
               <div className="row-icon" style={{ background: 'var(--surface-raised)', color: 'var(--text)' }}>{iconFor(e.category)}</div>
               <div className="row-body">
