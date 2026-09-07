@@ -4,10 +4,10 @@ import { VAULT_ICONS } from '../lib/vaultIcons'
 
 const COLOR_OPTIONS = ['#3FA796', '#E8735C', '#E8A65C', '#5C9DE8', '#B05CE8', '#E85C9D']
 
-export default function CategorySheet({ onClose, onSave }) {
-  const [name, setName] = useState('')
-  const [color, setColor] = useState(COLOR_OPTIONS[0])
-  const [icon, setIcon] = useState(VAULT_ICONS[0].key)
+export default function CategorySheet({ onClose, onSave, initial }) {
+  const [name, setName] = useState(initial?.name || '')
+  const [color, setColor] = useState(initial?.color || COLOR_OPTIONS[0])
+  const [icon, setIcon] = useState(initial?.icon && VAULT_ICONS.some((i) => i.key === initial.icon) ? initial.icon : VAULT_ICONS[0].key)
 
   function handleSubmit(e) {
     e.preventDefault()
@@ -17,8 +17,8 @@ export default function CategorySheet({ onClose, onSave }) {
 
   return (
     <Sheet onClose={onClose}>
-      <h2>New category</h2>
-      <p className="sub" style={{ marginBottom: 18 }}>e.g. Google, Banking, Work — group your saved logins however makes sense to you.</p>
+      <h2>{initial ? 'Edit category' : 'New category'}</h2>
+      <p className="sub" style={{ marginBottom: 18 }}>{initial ? 'Update the name, icon, or color.' : 'e.g. Google, Banking, Work — group your saved logins however makes sense to you.'}</p>
       <form onSubmit={handleSubmit}>
         <div className="field">
           <label>Name</label>
@@ -56,7 +56,7 @@ export default function CategorySheet({ onClose, onSave }) {
             ))}
           </div>
         </div>
-        <button className="btn btn-primary" type="submit">Create category</button>
+        <button className="btn btn-primary" type="submit">{initial ? 'Save changes' : 'Create category'}</button>
       </form>
     </Sheet>
   )
