@@ -1,28 +1,13 @@
 import { useState } from 'react'
 import Sheet from './Sheet'
+import { VAULT_ICONS } from '../lib/vaultIcons'
 
 const COLOR_OPTIONS = ['#3FA796', '#E8735C', '#E8A65C', '#5C9DE8', '#B05CE8', '#E85C9D']
-const ICON_OPTIONS = [
-  '📁', '🔑', '📧', '🎮', '🛒', '🏠', '✈️',
-  '🔍', // Google-style / search
-  '👥', // Facebook-style / social
-  '📷', // Instagram-style / photo
-  '🪟', // Microsoft-style / windows
-  '💼', // LinkedIn-style / work
-  '📱', // Samsung-style / phone
-  '🏦', // Bank
-  '☁️', // iCloud-style / cloud
-  '🗄️', // Database
-  '🐙', // GitHub-style / dev
-  '📹', // CCTV / Hikvision
-  '📶', // WiFi
-  '💻', // Software
-]
 
 export default function CategorySheet({ onClose, onSave }) {
   const [name, setName] = useState('')
   const [color, setColor] = useState(COLOR_OPTIONS[0])
-  const [icon, setIcon] = useState(ICON_OPTIONS[0])
+  const [icon, setIcon] = useState(VAULT_ICONS[0].key)
 
   function handleSubmit(e) {
     e.preventDefault()
@@ -41,10 +26,16 @@ export default function CategorySheet({ onClose, onSave }) {
         </div>
         <div className="field">
           <label>Icon</label>
-          <div className="chip-row">
-            {ICON_OPTIONS.map((opt) => (
-              <button type="button" key={opt} className={`chip ${icon === opt ? 'active' : ''}`} onClick={() => setIcon(opt)}>
-                {opt}
+          <div className="icon-grid">
+            {VAULT_ICONS.map(({ key, Icon, label }) => (
+              <button
+                type="button"
+                key={key}
+                className={`icon-chip ${icon === key ? 'active' : ''}`}
+                onClick={() => setIcon(key)}
+                title={label}
+              >
+                <Icon size={19} />
               </button>
             ))}
           </div>

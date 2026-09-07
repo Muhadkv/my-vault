@@ -7,6 +7,7 @@ import CategorySheet from '../components/CategorySheet'
 import PasswordFormSheet from '../components/PasswordFormSheet'
 import PasswordDetailSheet from '../components/PasswordDetailSheet'
 import Toast from '../components/Toast'
+import { VaultIconDisplay } from '../lib/vaultIcons'
 
 export default function Vault() {
   const { user } = useAuth()
@@ -134,7 +135,7 @@ export default function Vault() {
           <div key={cat.id} style={{ marginBottom: 12 }}>
             <div className="group">
               <button className="row" style={{ width: '100%', textAlign: 'left' }} onClick={() => setOpenCategory(isOpen ? null : cat.id)}>
-                <div className="row-icon" style={{ background: cat.color }}>{cat.icon}</div>
+                <div className="row-icon" style={{ background: cat.color, color: 'var(--ink)' }}><VaultIconDisplay iconKey={cat.icon} size={18} /></div>
                 <div className="row-body">
                   <div className="row-title">{cat.name}</div>
                   <div className="row-subtitle">{catItems.length} login{catItems.length !== 1 ? 's' : ''}</div>

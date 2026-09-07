@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import Sheet from './Sheet'
 import { generatePassword, estimateStrength } from '../lib/crypto'
+import { getVaultIcon } from '../lib/vaultIcons'
 
 export default function PasswordFormSheet({ categories, defaultCategoryId, initial, onClose, onSave }) {
   const [title, setTitle] = useState(initial?.title || '')
@@ -36,7 +37,7 @@ export default function PasswordFormSheet({ categories, defaultCategoryId, initi
           <label>Category</label>
           <select value={categoryId} onChange={(e) => setCategoryId(e.target.value)}>
             {categories.map((c) => (
-              <option key={c.id} value={c.id}>{c.icon} {c.name}</option>
+              <option key={c.id} value={c.id}>{getVaultIcon(c.icon)?.label || c.icon} {c.name}</option>
             ))}
           </select>
         </div>
