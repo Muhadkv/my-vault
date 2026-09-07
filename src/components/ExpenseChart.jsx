@@ -1,4 +1,5 @@
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts'
+import { formatMoney } from '../lib/categories'
 
 const COLORS = ['#3FA796', '#E8735C', '#E8A65C', '#5C9DE8', '#B05CE8', '#E85C9D', '#8B97A6']
 
@@ -13,7 +14,7 @@ export default function ExpenseChart({ data }) {
           </Pie>
           <Tooltip
             contentStyle={{ background: 'var(--surface-raised)', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13 }}
-            formatter={(value) => `$${value.toFixed(2)}`}
+            formatter={(value) => formatMoney(value)}
           />
         </PieChart>
       </ResponsiveContainer>

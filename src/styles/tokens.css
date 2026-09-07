@@ -25,6 +25,27 @@
   --safe-bottom: env(safe-area-inset-bottom, 0px);
 }
 
+[data-theme='light'] {
+  --ink: #F4F6F8;
+  --surface: #FFFFFF;
+  --surface-raised: #EEF2F5;
+  --border: #DDE4EA;
+  --accent: #2F8F80;
+  --accent-strong: #257367;
+  --danger: #D9563F;
+  --text: #171E27;
+  --text-muted: #5B6672;
+  --text-faint: #94A0AC;
+}
+
+[data-theme='light'] body {
+  color-scheme: light;
+}
+
+body {
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
 * { box-sizing: border-box; }
 
 html, body, #root {

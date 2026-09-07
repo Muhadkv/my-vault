@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { supabase } from '../lib/supabaseClient'
 import { useAuth } from '../context/AuthContext'
 import { useVault } from '../context/VaultContext'
@@ -17,6 +18,15 @@ export default function Vault() {
   const [detailItem, setDetailItem] = useState(null)
   const [editingItem, setEditingItem] = useState(null)
   const [toast, setToast] = useState('')
+  const [query, setQuery] = useState('')
+  const [searchParams, setSearchParams] = useSearchParams()
+
+  useEffect(() => {
+    if (searchParams.get('action') === 'add') {
+      setSheet({ type: 'add-menu' })
+      setSearchParams({}, { replace: true })
+    }
+  }, [])
 
   async function loadAll() {
     const [{ data: cats }, { data: pwItems }] = await Promise.all([
@@ -67,11 +77,49 @@ export default function Vault() {
 
   const itemsByCategory = (catId) => items.filter((i) => i.category_id === catId)
 
+  const searchResults = useMemo(() => {
+    const q = query.trim().toLowerCase()
+    if (!q) return null
+    return items
+      .filter((i) => i.title.toLowerCase().includes(q))
+      .map((i) => ({ ...i, categoryName: categories.find((c) => c.id === i.category_id)?.name || 'Uncategorized' }))
+  }, [query, items, categories])
+
   return (
     <div className="screen">
       <h1 className="display" style={{ fontSize: 22, marginBottom: 4 }}>Vault</h1>
       <p className="sub" style={{ marginBottom: 18 }}>{items.length} saved login{items.length !== 1 ? 's' : ''} across {categories.length} categories</p>
 
+      <div className="field" style={{ marginBottom: 18 }}>
+        <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="🔍 Search logins…" />
+      </div>
+
+      {searchResults && (
+        <>
+          {searchResults.length === 0 ? (
+            <div className="empty-state">
+              <div className="glyph">🔍</div>
+              <p>No logins match "{query}".</p>
+            </div>
+          ) : (
+            <div className="group">
+              {searchResults.map((item) => (
+                <button key={item.id} className="row" style={{ width: '100%', textAlign: 'left' }} onClick={() => handleOpenItem(item)}>
+                  <div className="row-icon" style={{ background: 'var(--surface-raised)', color: 'var(--text)' }}>🔑</div>
+                  <div className="row-body">
+                    <div className="row-title">{item.title}</div>
+                    <div className="row-subtitle">{item.categoryName}</div>
+                  </div>
+                  <span className="row-chevron">›</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </>
+      )}
+
+      {!searchResults && (
+      <>
       {categories.length === 0 && (
         <div className="empty-state">
           <div className="glyph">🔐</div>
@@ -117,6 +165,8 @@ export default function Vault() {
           </div>
         )
       })}
+      </>
+      )}
 
       <button className="fab" onClick={() => setSheet({ type: 'add-menu' })}>+</button>
 

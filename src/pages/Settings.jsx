@@ -2,13 +2,15 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
 import { useAuth } from '../context/AuthContext'
 import { useVault } from '../context/VaultContext'
-import { EXPENSE_CATEGORIES } from '../lib/categories'
+import { useTheme } from '../context/ThemeContext'
+import { EXPENSE_CATEGORIES, formatMoney } from '../lib/categories'
 import Sheet from '../components/Sheet'
 import Toast from '../components/Toast'
 
 export default function Settings() {
   const { user, signOut } = useAuth()
-  const { lock } = useVault()
+  const { lock, hasBiometric, enableBiometric, disableBiometric } = useVault()
+  const { theme, toggleTheme } = useTheme()
   const [budgets, setBudgets] = useState([])
   const [expenseCount, setExpenseCount] = useState(0)
   const [passwordCount, setPasswordCount] = useState(0)
@@ -36,6 +38,20 @@ export default function Settings() {
   async function handleSaveBudget(category, monthly_limit) {
     await supabase.from('budgets').upsert({ user_id: user.id, category, monthly_limit }, { onConflict: 'user_id,category' })
     loadAll()
+  }
+
+  async function handleBiometricToggle() {
+    try {
+      if (hasBiometric) {
+        disableBiometric()
+        setToast('Fingerprint unlock turned off')
+      } else {
+        await enableBiometric()
+        setToast('Fingerprint unlock enabled')
+      }
+    } catch (err) {
+      setToast(err.message)
+    }
   }
 
   async function startEnroll() {
@@ -105,11 +121,22 @@ export default function Settings() {
         {budgets.map((b) => (
           <div key={b.id} className="row">
             <div className="row-body"><div className="row-title">{b.category}</div></div>
-            <span className="row-value">${b.monthly_limit}/mo</span>
+            <span className="row-value">{formatMoney(b.monthly_limit)}/mo</span>
           </div>
         ))}
         <button className="row" style={{ width: '100%', textAlign: 'left', color: 'var(--accent)' }} onClick={() => setShowBudgetSheet(true)}>
           + Set a budget
+        </button>
+      </div>
+
+      <div className="group-title">Appearance</div>
+      <div className="group">
+        <button className="row" style={{ width: '100%', textAlign: 'left' }} onClick={toggleTheme}>
+          <div className="row-body">
+            <div className="row-title">Theme</div>
+            <div className="row-subtitle">{theme === 'dark' ? 'Dark' : 'Light'}</div>
+          </div>
+          <span className="row-chevron">{theme === 'dark' ? '🌙' : '☀️'}</span>
         </button>
       </div>
 
@@ -118,6 +145,13 @@ export default function Settings() {
         <button className="row" style={{ width: '100%', textAlign: 'left' }} onClick={lock}>
           <div className="row-body"><div className="row-title">Lock vault now</div></div>
           <span className="row-chevron">🔒</span>
+        </button>
+        <button className="row" style={{ width: '100%', textAlign: 'left' }} onClick={handleBiometricToggle}>
+          <div className="row-body">
+            <div className="row-title">Fingerprint / Face ID unlock</div>
+            <div className="row-subtitle">{hasBiometric ? 'Enabled on this device' : 'Skip typing your master password on this device'}</div>
+          </div>
+          <span className="row-chevron">{hasBiometric ? 'Turn off' : '👆'}</span>
         </button>
         <button className="row" style={{ width: '100%', textAlign: 'left' }} onClick={mfaFactor?.status === 'verified' ? undefined : startEnroll}>
           <div className="row-body">

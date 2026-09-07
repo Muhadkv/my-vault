@@ -3,7 +3,7 @@ import { useVault } from '../context/VaultContext'
 import { estimateStrength } from '../lib/crypto'
 
 export default function Unlock() {
-  const { hasVault, createVault, unlock } = useVault()
+  const { hasVault, hasBiometric, createVault, unlock, unlockBiometric } = useVault()
   const [password, setPassword] = useState('')
   const [confirm, setConfirm] = useState('')
   const [error, setError] = useState('')
@@ -33,6 +33,18 @@ export default function Unlock() {
     }
   }
 
+  async function handleBiometric() {
+    setError('')
+    setBusy(true)
+    try {
+      await unlockBiometric()
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setBusy(false)
+    }
+  }
+
   if (hasVault === null) {
     return <div className="center-screen"><p className="sub">Loading…</p></div>
   }
@@ -46,6 +58,12 @@ export default function Unlock() {
           ? "This encrypts everything in your vault. It's never sent anywhere or stored — if you forget it, your data can't be recovered, so save it somewhere safe."
           : 'Your vault is locked. Unlock it to view your passwords and expenses.'}
       </p>
+
+      {!isSetup && hasBiometric && (
+        <button className="btn btn-ghost" type="button" onClick={handleBiometric} disabled={busy} style={{ marginBottom: 18 }}>
+          👆 Unlock with fingerprint / Face ID
+        </button>
+      )}
 
       <form onSubmit={handleSubmit}>
         <div className="field">

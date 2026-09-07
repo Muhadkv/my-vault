@@ -1,6 +1,7 @@
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import { VaultProvider, useVault } from './context/VaultContext'
+import { ThemeProvider } from './context/ThemeContext'
 import Auth from './pages/Auth'
 import Unlock from './pages/Unlock'
 import Vault from './pages/Vault'
@@ -37,14 +38,16 @@ function Gate() {
 
 export default function App() {
   return (
-    <AuthProvider>
-      <VaultProvider>
-        <HashRouter>
-          <div className="app-shell">
-            <Gate />
-          </div>
-        </HashRouter>
-      </VaultProvider>
-    </AuthProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        <VaultProvider>
+          <HashRouter>
+            <div className="app-shell">
+              <Gate />
+            </div>
+          </HashRouter>
+        </VaultProvider>
+      </AuthProvider>
+    </ThemeProvider>
   )
 }

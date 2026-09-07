@@ -2,7 +2,22 @@ import { useState } from 'react'
 import Sheet from './Sheet'
 
 const COLOR_OPTIONS = ['#3FA796', '#E8735C', '#E8A65C', '#5C9DE8', '#B05CE8', '#E85C9D']
-const ICON_OPTIONS = ['📁', '🔑', '💼', '🏦', '📧', '🎮', '🛒', '📱', '🏠', '✈️']
+const ICON_OPTIONS = [
+  '📁', '🔑', '📧', '🎮', '🛒', '🏠', '✈️',
+  '🔍', // Google-style / search
+  '👥', // Facebook-style / social
+  '📷', // Instagram-style / photo
+  '🪟', // Microsoft-style / windows
+  '💼', // LinkedIn-style / work
+  '📱', // Samsung-style / phone
+  '🏦', // Bank
+  '☁️', // iCloud-style / cloud
+  '🗄️', // Database
+  '🐙', // GitHub-style / dev
+  '📹', // CCTV / Hikvision
+  '📶', // WiFi
+  '💻', // Software
+]
 
 export default function CategorySheet({ onClose, onSave }) {
   const [name, setName] = useState('')
