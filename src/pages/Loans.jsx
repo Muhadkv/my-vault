@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
 import { useAuth } from '../context/AuthContext'
 import { useVault } from '../context/VaultContext'
-import { formatMoney } from '../lib/categories'
+import { formatMoney, CURRENCIES } from '../lib/categories'
 import { getLoanType, dueDateStatus } from '../lib/loanTypes'
 import LoanFormSheet from '../components/LoanFormSheet'
 import LoanPaymentSheet from '../components/LoanPaymentSheet'
@@ -52,6 +52,7 @@ export default function Loans() {
   const [query, setQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState('all') // 'all' | 'active' | 'paid'
   const [sortBy, setSortBy] = useState('dueDate')
+  const [currency, setCurrency] = useState('AED')
 
   async function loadAll() {
     const [{ data: loanRows }, { data: paymentRows }] = await Promise.all([
@@ -77,16 +78,18 @@ export default function Loans() {
     return paymentsFor(loan.id).reduce((sum, p) => sum + Number(p.amount), 0)
   }
 
-  const totalBorrowed = useMemo(() => loans.reduce((sum, l) => sum + Number(l.original_amount), 0), [loans])
-  const totalRemaining = useMemo(() => loans.reduce((sum, l) => sum + remainingFor(l), 0), [loans, payments])
+  const currencyLoans = useMemo(() => loans.filter((l) => (l.currency || 'AED') === currency), [loans, currency])
+
+  const totalBorrowed = useMemo(() => currencyLoans.reduce((sum, l) => sum + Number(l.original_amount), 0), [currencyLoans])
+  const totalRemaining = useMemo(() => currencyLoans.reduce((sum, l) => sum + remainingFor(l), 0), [currencyLoans, payments])
 
   const { activeLoans, paidLoans } = useMemo(() => {
     const q = query.trim().toLowerCase()
-    let filtered = loans.filter((l) => l.lender_name.toLowerCase().includes(q))
+    let filtered = currencyLoans.filter((l) => l.lender_name.toLowerCase().includes(q))
     const active = filtered.filter((l) => remainingFor(l) > 0)
     const paidOff = filtered.filter((l) => remainingFor(l) <= 0)
     return { activeLoans: sortLoans(active, sortBy), paidLoans: sortLoans(paidOff, sortBy) }
-  }, [loans, payments, query, sortBy])
+  }, [currencyLoans, payments, query, sortBy])
 
   const chartData = useMemo(() => {
     const grouped = {}
@@ -116,6 +119,7 @@ export default function Loans() {
         lender_name: form.lenderName,
         lender_type: form.lenderType,
         original_amount: form.amount,
+        currency: form.currency,
         borrowed_on: form.borrowedOn,
         due_date: form.dueDate,
         encrypted_notes,
@@ -174,6 +178,7 @@ export default function Loans() {
 
   function renderLoanRow(loan) {
     const type = getLoanType(loan.lender_type)
+    const cur = loan.currency || 'AED'
     const paid = paidFor(loan)
     const remaining = remainingFor(loan)
     const pct = Math.min(100, (paid / Number(loan.original_amount)) * 100)
@@ -185,11 +190,11 @@ export default function Loans() {
           <div style={{ display: 'flex', justifyContent: 'space-between' }}>
             <div className="row-title">{loan.lender_name}</div>
             <span className="row-value" style={{ color: remaining > 0 ? 'var(--danger)' : 'var(--accent)' }}>
-              {remaining > 0 ? formatMoney(remaining) : '✓ Paid'}
+              {remaining > 0 ? formatMoney(remaining, cur) : '✓ Paid'}
             </span>
           </div>
           <div className="row-subtitle" style={{ marginTop: 2 }}>
-            {formatMoney(paid)} of {formatMoney(loan.original_amount)} paid
+            {formatMoney(paid, cur)} of {formatMoney(loan.original_amount, cur)} paid
             {due && (
               <span style={{ color: due.isOverdue ? 'var(--danger)' : due.isSoon ? '#E8A65C' : 'var(--text-muted)' }}> · {due.label}</span>
             )}
@@ -205,23 +210,31 @@ export default function Loans() {
   return (
     <div className="screen">
       <h1 className="display" style={{ fontSize: 22, marginBottom: 4 }}>Loans</h1>
-      <p className="sub" style={{ marginBottom: 18 }}>Money you've borrowed and owe back</p>
+      <p className="sub" style={{ marginBottom: 16 }}>Money you've borrowed and owe back</p>
+
+      <div className="chip-row" style={{ marginBottom: 18 }}>
+        {CURRENCIES.map((c) => (
+          <button key={c.code} className={`chip ${currency === c.code ? 'active' : ''}`} onClick={() => setCurrency(c.code)}>
+            {c.label}
+          </button>
+        ))}
+      </div>
 
       <div className="stat-row">
         <div className="stat-card">
           <div className="label">Total borrowed</div>
-          <div className="value">{formatMoney(totalBorrowed)}</div>
+          <div className="value">{formatMoney(totalBorrowed, currency)}</div>
         </div>
         <div className="stat-card">
           <div className="label">Still owed</div>
-          <div className="value" style={{ color: totalRemaining > 0 ? 'var(--danger)' : 'var(--accent)' }}>{formatMoney(totalRemaining)}</div>
+          <div className="value" style={{ color: totalRemaining > 0 ? 'var(--danger)' : 'var(--accent)' }}>{formatMoney(totalRemaining, currency)}</div>
         </div>
       </div>
 
       {chartData.length > 0 && (
         <>
           <div className="group-title">Overview</div>
-          <LoanChart data={chartData} />
+          <LoanChart data={chartData} currency={currency} />
         </>
       )}
 
@@ -243,14 +256,14 @@ export default function Loans() {
         </select>
       </div>
 
-      {loans.length === 0 && (
+      {currencyLoans.length === 0 && (
         <div className="empty-state">
           <div className="glyph">🤝</div>
-          <p>No loans tracked yet. Add one when you borrow from a person, Tabby, Botim, or a bank.</p>
+          <p>No {currency} loans tracked yet. Add one when you borrow from a person, Tabby, Botim, or a bank.</p>
         </div>
       )}
 
-      {loans.length > 0 && activeLoans.length === 0 && paidLoans.length === 0 && (
+      {currencyLoans.length > 0 && activeLoans.length === 0 && paidLoans.length === 0 && (
         <div className="empty-state">
           <div className="glyph">🔍</div>
           <p>No loans match your search.</p>
@@ -276,6 +289,7 @@ export default function Loans() {
       {(sheet?.type === 'add-loan' || sheet?.type === 'edit-loan') && (
         <LoanFormSheet
           initial={sheet.editing}
+          defaultCurrency={currency}
           onClose={() => setSheet(null)}
           onSave={handleSaveLoan}
         />
@@ -284,6 +298,7 @@ export default function Loans() {
       {sheet?.type === 'add-payment' && selectedLoan && (
         <LoanPaymentSheet
           remaining={remainingFor(selectedLoan)}
+          currency={selectedLoan.currency || 'AED'}
           onClose={() => setSheet(null)}
           onSave={handleSavePayment}
         />
