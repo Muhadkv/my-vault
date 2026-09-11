@@ -1,10 +1,11 @@
 import { useState } from 'react'
 import Sheet from './Sheet'
-import { EXPENSE_CATEGORIES, noteLabelFor } from '../lib/categories'
+import { EXPENSE_CATEGORIES, noteLabelFor, CURRENCIES } from '../lib/categories'
 
-export default function ExpenseFormSheet({ onClose, onSave }) {
+export default function ExpenseFormSheet({ onClose, onSave, defaultCurrency = 'AED' }) {
   const [category, setCategory] = useState(EXPENSE_CATEGORIES[0].name)
   const [amount, setAmount] = useState('')
+  const [currency, setCurrency] = useState(defaultCurrency)
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10))
   const [note, setNote] = useState('')
   const [isRecurring, setIsRecurring] = useState(false)
@@ -13,13 +14,23 @@ export default function ExpenseFormSheet({ onClose, onSave }) {
   function handleSubmit(e) {
     e.preventDefault()
     if (!amount || isNaN(parseFloat(amount))) return
-    onSave({ category, amount: parseFloat(amount), spentOn: date, note, isRecurring, interval })
+    onSave({ category, amount: parseFloat(amount), currency, spentOn: date, note, isRecurring, interval })
   }
 
   return (
     <Sheet onClose={onClose}>
       <h2>New expense</h2>
       <form onSubmit={handleSubmit} style={{ marginTop: 14 }}>
+        <div className="field">
+          <label>Currency</label>
+          <div className="chip-row">
+            {CURRENCIES.map((c) => (
+              <button type="button" key={c.code} className={`chip ${currency === c.code ? 'active' : ''}`} onClick={() => setCurrency(c.code)}>
+                {c.label}
+              </button>
+            ))}
+          </div>
+        </div>
         <div className="field">
           <label>Amount</label>
           <input autoFocus type="number" step="0.01" inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0.00" />

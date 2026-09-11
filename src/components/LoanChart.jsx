@@ -1,25 +1,36 @@
-import { BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer, CartesianGrid } from 'recharts'
+import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 import { formatMoney } from '../lib/categories'
+
+const COLORS = ['#E8735C', '#5C9DE8', '#E8A65C', '#B05CE8', '#3FA796', '#E85C9D', '#8B97A6', '#6FCF97']
 
 export default function LoanChart({ data }) {
   if (data.length === 0) return null
-  const height = Math.max(180, data.length * 56)
-
   return (
-    <div style={{ height }}>
+    <div style={{ height: 260 }}>
       <ResponsiveContainer width="100%" height="100%">
-        <BarChart data={data} layout="vertical" margin={{ left: 8, right: 16 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" horizontal={false} />
-          <XAxis type="number" tick={{ fill: 'var(--text-muted)', fontSize: 11 }} axisLine={false} tickLine={false} />
-          <YAxis type="category" dataKey="name" width={90} tick={{ fill: 'var(--text-muted)', fontSize: 12 }} axisLine={false} tickLine={false} />
+        <PieChart>
+          <Pie
+            data={data}
+            dataKey="remaining"
+            nameKey="name"
+            innerRadius={50}
+            outerRadius={80}
+            paddingAngle={3}
+            label={({ percent }) => `${(percent * 100).toFixed(0)}%`}
+            labelLine={false}
+          >
+            {data.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} stroke="var(--surface)" strokeWidth={2} />)}
+          </Pie>
           <Tooltip
             contentStyle={{ background: 'var(--surface-raised)', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13 }}
             formatter={(value) => formatMoney(value)}
           />
-          <Legend wrapperStyle={{ fontSize: 12, color: 'var(--text-muted)' }} />
-          <Bar dataKey="paid" stackId="a" fill="var(--accent)" name="Paid" radius={[0, 0, 0, 0]} />
-          <Bar dataKey="remaining" stackId="a" fill="var(--danger)" name="Remaining" radius={[0, 4, 4, 0]} />
-        </BarChart>
+          <Legend
+            layout="horizontal"
+            verticalAlign="bottom"
+            wrapperStyle={{ fontSize: 12, color: 'var(--text-muted)', paddingTop: 8 }}
+          />
+        </PieChart>
       </ResponsiveContainer>
     </div>
   )

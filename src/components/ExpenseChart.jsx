@@ -3,7 +3,7 @@ import { formatMoney } from '../lib/categories'
 
 const COLORS = ['#3FA796', '#E8735C', '#E8A65C', '#5C9DE8', '#B05CE8', '#E85C9D', '#8B97A6', '#6FCF97', '#F2994A', '#9B51E0']
 
-export default function ExpenseChart({ data }) {
+export default function ExpenseChart({ data, currency = 'AED' }) {
   if (data.length === 0) return null
   return (
     <div style={{ height: 260 }}>
@@ -23,7 +23,7 @@ export default function ExpenseChart({ data }) {
           </Pie>
           <Tooltip
             contentStyle={{ background: 'var(--surface-raised)', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13 }}
-            formatter={(value) => formatMoney(value)}
+            formatter={(value) => formatMoney(value, currency)}
           />
           <Legend
             layout="horizontal"
