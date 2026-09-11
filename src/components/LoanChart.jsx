@@ -3,7 +3,7 @@ import { formatMoney } from '../lib/categories'
 
 const COLORS = ['#E8735C', '#5C9DE8', '#E8A65C', '#B05CE8', '#3FA796', '#E85C9D', '#8B97A6', '#6FCF97']
 
-export default function LoanChart({ data }) {
+export default function LoanChart({ data, currency = 'AED' }) {
   if (data.length === 0) return null
   return (
     <div style={{ height: 260 }}>
@@ -23,7 +23,7 @@ export default function LoanChart({ data }) {
           </Pie>
           <Tooltip
             contentStyle={{ background: 'var(--surface-raised)', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13 }}
-            formatter={(value) => formatMoney(value)}
+            formatter={(value) => formatMoney(value, currency)}
           />
           <Legend
             layout="horizontal"

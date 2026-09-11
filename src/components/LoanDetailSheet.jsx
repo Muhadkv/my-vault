@@ -7,6 +7,7 @@ export default function LoanDetailSheet({ loan, payments, onClose, onAddPayment,
   const remaining = Math.max(0, Number(loan.original_amount) - paid)
   const pct = Math.min(100, (paid / Number(loan.original_amount)) * 100)
   const type = getLoanType(loan.lender_type)
+  const currency = loan.currency || 'AED'
   const isPaidOff = remaining <= 0
   const due = !isPaidOff ? dueDateStatus(loan.due_date) : null
 
@@ -37,14 +38,14 @@ export default function LoanDetailSheet({ loan, payments, onClose, onAddPayment,
 
       <div className="field">
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8, fontSize: 13 }}>
-          <span className="sub" style={{ margin: 0 }}>{formatMoney(paid)} paid</span>
-          <span className="sub" style={{ margin: 0 }}>{formatMoney(loan.original_amount)} total</span>
+          <span className="sub" style={{ margin: 0 }}>{formatMoney(paid, currency)} paid</span>
+          <span className="sub" style={{ margin: 0 }}>{formatMoney(loan.original_amount, currency)} total</span>
         </div>
         <div className="progress-bar">
           <div className="progress-fill" style={{ width: `${pct}%`, background: isPaidOff ? 'var(--accent)' : type.color }} />
         </div>
         <p style={{ marginTop: 10, marginBottom: 0, fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 18 }}>
-          {isPaidOff ? '✓ Paid off' : `${formatMoney(remaining)} remaining`}
+          {isPaidOff ? '✓ Paid off' : `${formatMoney(remaining, currency)} remaining`}
         </p>
       </div>
 
@@ -70,7 +71,7 @@ export default function LoanDetailSheet({ loan, payments, onClose, onAddPayment,
                 <div className="row-title">{p.note || 'Payment'}</div>
                 <div className="row-subtitle">{new Date(p.paid_on).toLocaleDateString()}</div>
               </div>
-              <span className="row-value">{formatMoney(p.amount)}</span>
+              <span className="row-value">{formatMoney(p.amount, currency)}</span>
             </div>
           ))}
         </div>

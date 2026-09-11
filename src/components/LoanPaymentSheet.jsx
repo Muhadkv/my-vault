@@ -2,7 +2,7 @@ import { useState } from 'react'
 import Sheet from './Sheet'
 import { formatMoney } from '../lib/categories'
 
-export default function LoanPaymentSheet({ remaining, onClose, onSave }) {
+export default function LoanPaymentSheet({ remaining, currency = 'AED', onClose, onSave }) {
   const [amount, setAmount] = useState('')
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10))
   const [note, setNote] = useState('')
@@ -17,10 +17,10 @@ export default function LoanPaymentSheet({ remaining, onClose, onSave }) {
   return (
     <Sheet onClose={onClose}>
       <h2>Add payment</h2>
-      <p className="sub" style={{ marginBottom: 18 }}>{formatMoney(remaining)} remaining</p>
+      <p className="sub" style={{ marginBottom: 18 }}>{formatMoney(remaining, currency)} remaining</p>
       <form onSubmit={handleSubmit}>
         <div className="field">
-          <label>Amount paid (AED)</label>
+          <label>Amount paid ({currency})</label>
           <input autoFocus type="number" step="0.01" inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0.00" />
         </div>
         <div className="field">
