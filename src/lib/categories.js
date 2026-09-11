@@ -38,8 +38,12 @@ export function iconFor(categoryName) {
   return found?.icon || '💳'
 }
 
-export const CURRENCY = 'AED'
+export const CURRENCIES = [
+  { code: 'AED', label: 'AED' },
+  { code: 'INR', label: '₹ INR' },
+]
 
-export function formatMoney(amount) {
-  return `${CURRENCY} ${Number(amount).toFixed(2)}`
+export function formatMoney(amount, currency = 'AED') {
+  const symbol = currency === 'INR' ? '₹' : 'AED'
+  return `${symbol} ${Number(amount).toFixed(2)}`
 }
