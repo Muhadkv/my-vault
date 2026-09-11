@@ -7,7 +7,38 @@ import { getLoanType, dueDateStatus } from '../lib/loanTypes'
 import LoanFormSheet from '../components/LoanFormSheet'
 import LoanPaymentSheet from '../components/LoanPaymentSheet'
 import LoanDetailSheet from '../components/LoanDetailSheet'
+import LoanChart from '../components/LoanChart'
 import Toast from '../components/Toast'
+
+const SORT_OPTIONS = [
+  { key: 'dueDate', label: 'Due date (soonest first)' },
+  { key: 'amountDesc', label: 'Amount: high to low' },
+  { key: 'amountAsc', label: 'Amount: low to high' },
+  { key: 'nameAsc', label: 'Name (A–Z)' },
+  { key: 'recent', label: 'Recently added' },
+]
+
+function sortLoans(list, sortBy) {
+  const arr = [...list]
+  switch (sortBy) {
+    case 'amountDesc':
+      return arr.sort((a, b) => Number(b.original_amount) - Number(a.original_amount))
+    case 'amountAsc':
+      return arr.sort((a, b) => Number(a.original_amount) - Number(b.original_amount))
+    case 'nameAsc':
+      return arr.sort((a, b) => a.lender_name.localeCompare(b.lender_name))
+    case 'recent':
+      return arr.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+    case 'dueDate':
+    default:
+      return arr.sort((a, b) => {
+        if (!a.due_date && !b.due_date) return 0
+        if (!a.due_date) return 1
+        if (!b.due_date) return -1
+        return new Date(a.due_date) - new Date(b.due_date)
+      })
+  }
+}
 
 export default function Loans() {
   const { user } = useAuth()
@@ -15,8 +46,12 @@ export default function Loans() {
   const [loans, setLoans] = useState([])
   const [payments, setPayments] = useState([])
   const [sheet, setSheet] = useState(null) // 'add-loan' | 'edit-loan' | 'add-payment'
-  const [selectedLoan, setSelectedLoan] = useState(null) // decrypted loan currently open in detail sheet
+  const [selectedLoan, setSelectedLoan] = useState(null)
   const [toast, setToast] = useState('')
+
+  const [query, setQuery] = useState('')
+  const [statusFilter, setStatusFilter] = useState('all') // 'all' | 'active' | 'paid'
+  const [sortBy, setSortBy] = useState('dueDate')
 
   async function loadAll() {
     const [{ data: loanRows }, { data: paymentRows }] = await Promise.all([
@@ -38,20 +73,25 @@ export default function Loans() {
     return Math.max(0, Number(loan.original_amount) - paid)
   }
 
-  const { activeLoans, paidLoans, totalBorrowed, totalRemaining } = useMemo(() => {
-    const active = []
-    const paidOff = []
-    let borrowed = 0
-    let remaining = 0
-    loans.forEach((loan) => {
-      const rem = remainingFor(loan)
-      borrowed += Number(loan.original_amount)
-      remaining += rem
-      if (rem <= 0) paidOff.push(loan)
-      else active.push(loan)
-    })
-    return { activeLoans: active, paidLoans: paidOff, totalBorrowed: borrowed, totalRemaining: remaining }
-  }, [loans, payments])
+  function paidFor(loan) {
+    return paymentsFor(loan.id).reduce((sum, p) => sum + Number(p.amount), 0)
+  }
+
+  const totalBorrowed = useMemo(() => loans.reduce((sum, l) => sum + Number(l.original_amount), 0), [loans])
+  const totalRemaining = useMemo(() => loans.reduce((sum, l) => sum + remainingFor(l), 0), [loans, payments])
+
+  const { activeLoans, paidLoans } = useMemo(() => {
+    const q = query.trim().toLowerCase()
+    let filtered = loans.filter((l) => l.lender_name.toLowerCase().includes(q))
+    const active = filtered.filter((l) => remainingFor(l) > 0)
+    const paidOff = filtered.filter((l) => remainingFor(l) <= 0)
+    return { activeLoans: sortLoans(active, sortBy), paidLoans: sortLoans(paidOff, sortBy) }
+  }, [loans, payments, query, sortBy])
+
+  const chartData = useMemo(
+    () => activeLoans.map((l) => ({ name: l.lender_name, paid: paidFor(l), remaining: remainingFor(l) })),
+    [activeLoans, payments]
+  )
 
   async function handleSaveLoan(form) {
     const encrypted_notes = form.notes ? await encrypt({ notes: form.notes }) : null
@@ -128,7 +168,7 @@ export default function Loans() {
 
   function renderLoanRow(loan) {
     const type = getLoanType(loan.lender_type)
-    const paid = paymentsFor(loan.id).reduce((sum, p) => sum + Number(p.amount), 0)
+    const paid = paidFor(loan)
     const remaining = remainingFor(loan)
     const pct = Math.min(100, (paid / Number(loan.original_amount)) * 100)
     const due = remaining > 0 ? dueDateStatus(loan.due_date) : null
@@ -172,6 +212,31 @@ export default function Loans() {
         </div>
       </div>
 
+      {chartData.length > 0 && (
+        <>
+          <div className="group-title">Overview</div>
+          <LoanChart data={chartData} />
+        </>
+      )}
+
+      <div className="field" style={{ marginTop: 8, marginBottom: 12 }}>
+        <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="🔍 Search by lender…" />
+      </div>
+
+      <div className="chip-row" style={{ marginBottom: 12 }}>
+        {['all', 'active', 'paid'].map((f) => (
+          <button key={f} className={`chip ${statusFilter === f ? 'active' : ''}`} onClick={() => setStatusFilter(f)}>
+            {f === 'all' ? 'All' : f === 'active' ? 'Active' : 'Paid off'}
+          </button>
+        ))}
+      </div>
+
+      <div className="field" style={{ marginBottom: 18 }}>
+        <select value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
+          {SORT_OPTIONS.map((o) => <option key={o.key} value={o.key}>{o.label}</option>)}
+        </select>
+      </div>
+
       {loans.length === 0 && (
         <div className="empty-state">
           <div className="glyph">🤝</div>
@@ -179,14 +244,21 @@ export default function Loans() {
         </div>
       )}
 
-      {activeLoans.length > 0 && (
+      {loans.length > 0 && activeLoans.length === 0 && paidLoans.length === 0 && (
+        <div className="empty-state">
+          <div className="glyph">🔍</div>
+          <p>No loans match your search.</p>
+        </div>
+      )}
+
+      {statusFilter !== 'paid' && activeLoans.length > 0 && (
         <>
           <div className="group-title">Active</div>
           <div className="group">{activeLoans.map(renderLoanRow)}</div>
         </>
       )}
 
-      {paidLoans.length > 0 && (
+      {statusFilter !== 'active' && paidLoans.length > 0 && (
         <>
           <div className="group-title">Paid off</div>
           <div className="group">{paidLoans.map(renderLoanRow)}</div>
