@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabaseClient'
 import { useAuth } from '../context/AuthContext'
 import { useVault } from '../context/VaultContext'
 import { useTheme } from '../context/ThemeContext'
-import { EXPENSE_CATEGORIES, formatMoney } from '../lib/categories'
+import { EXPENSE_CATEGORIES, formatMoney, CURRENCIES } from '../lib/categories'
 import Sheet from '../components/Sheet'
 import Toast from '../components/Toast'
 
@@ -35,8 +35,8 @@ export default function Settings() {
 
   useEffect(() => { loadAll() }, [])
 
-  async function handleSaveBudget(category, monthly_limit) {
-    await supabase.from('budgets').upsert({ user_id: user.id, category, monthly_limit }, { onConflict: 'user_id,category' })
+  async function handleSaveBudget(category, currency, monthly_limit) {
+    await supabase.from('budgets').upsert({ user_id: user.id, category, currency, monthly_limit }, { onConflict: 'user_id,category,currency' })
     loadAll()
   }
 
@@ -120,8 +120,8 @@ export default function Settings() {
         {budgets.length === 0 && <div className="row"><div className="row-subtitle">No monthly budgets set yet.</div></div>}
         {budgets.map((b) => (
           <div key={b.id} className="row">
-            <div className="row-body"><div className="row-title">{b.category}</div></div>
-            <span className="row-value">{formatMoney(b.monthly_limit)}/mo</span>
+            <div className="row-body"><div className="row-title">{b.category}</div><div className="row-subtitle">{b.currency || 'AED'}</div></div>
+            <span className="row-value">{formatMoney(b.monthly_limit, b.currency)}/mo</span>
           </div>
         ))}
         <button className="row" style={{ width: '100%', textAlign: 'left', color: 'var(--accent)' }} onClick={() => setShowBudgetSheet(true)}>
@@ -195,7 +195,7 @@ export default function Settings() {
       )}
 
       {showBudgetSheet && (
-        <BudgetSheet onClose={() => setShowBudgetSheet(false)} onSave={(cat, limit) => { handleSaveBudget(cat, limit); setShowBudgetSheet(false) }} />
+        <BudgetSheet onClose={() => setShowBudgetSheet(false)} onSave={(cat, cur, limit) => { handleSaveBudget(cat, cur, limit); setShowBudgetSheet(false) }} />
       )}
 
       <Toast message={toast} onDone={() => setToast('')} />
@@ -205,11 +205,22 @@ export default function Settings() {
 
 function BudgetSheet({ onClose, onSave }) {
   const [category, setCategory] = useState(EXPENSE_CATEGORIES[0].name)
+  const [currency, setCurrency] = useState('AED')
   const [limit, setLimit] = useState('')
   return (
     <Sheet onClose={onClose}>
       <h2>Set a budget</h2>
-      <form onSubmit={(e) => { e.preventDefault(); if (limit) onSave(category, parseFloat(limit)) }} style={{ marginTop: 14 }}>
+      <form onSubmit={(e) => { e.preventDefault(); if (limit) onSave(category, currency, parseFloat(limit)) }} style={{ marginTop: 14 }}>
+        <div className="field">
+          <label>Currency</label>
+          <div className="chip-row">
+            {CURRENCIES.map((c) => (
+              <button type="button" key={c.code} className={`chip ${currency === c.code ? 'active' : ''}`} onClick={() => setCurrency(c.code)}>
+                {c.label}
+              </button>
+            ))}
+          </div>
+        </div>
         <div className="field">
           <label>Category</label>
           <select value={category} onChange={(e) => setCategory(e.target.value)}>

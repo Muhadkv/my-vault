@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router-dom'
 import { supabase } from '../lib/supabaseClient'
 import { useAuth } from '../context/AuthContext'
 import { useVault } from '../context/VaultContext'
-import { iconFor, formatMoney } from '../lib/categories'
+import { iconFor, formatMoney, CURRENCIES } from '../lib/categories'
 import ExpenseFormSheet from '../components/ExpenseFormSheet'
 import ExpenseChart from '../components/ExpenseChart'
 import Toast from '../components/Toast'
@@ -16,6 +16,7 @@ export default function Expenses() {
   const [showForm, setShowForm] = useState(false)
   const [toast, setToast] = useState('')
   const [query, setQuery] = useState('')
+  const [currency, setCurrency] = useState('AED')
   const [searchParams, setSearchParams] = useSearchParams()
 
   const today = new Date()
@@ -50,20 +51,22 @@ export default function Expenses() {
   }
 
   const monthLabel = new Date(selectedYear, selectedMonth).toLocaleString('default', { month: 'long', year: 'numeric' })
-  const isCurrentMonth = selectedMonth === today.getMonth() && selectedYear === today.getFullYear()
+
+  const currencyExpenses = useMemo(() => expenses.filter((e) => (e.currency || 'AED') === currency), [expenses, currency])
+  const currencyBudgets = useMemo(() => budgets.filter((b) => (b.currency || 'AED') === currency), [budgets, currency])
 
   const yearOptions = useMemo(() => {
-    const years = new Set(expenses.map((e) => new Date(e.spent_on).getFullYear()))
+    const years = new Set(currencyExpenses.map((e) => new Date(e.spent_on).getFullYear()))
     years.add(today.getFullYear())
     return Array.from(years).sort((a, b) => b - a)
-  }, [expenses])
+  }, [currencyExpenses])
 
   const monthExpenses = useMemo(
-    () => expenses.filter((e) => {
+    () => currencyExpenses.filter((e) => {
       const d = new Date(e.spent_on)
       return d.getMonth() === selectedMonth && d.getFullYear() === selectedYear
     }),
-    [expenses, selectedMonth, selectedYear]
+    [currencyExpenses, selectedMonth, selectedYear]
   )
 
   const monthTotal = monthExpenses.reduce((sum, e) => sum + Number(e.amount), 0)
@@ -80,6 +83,7 @@ export default function Expenses() {
       user_id: user.id,
       category: form.category,
       amount: form.amount,
+      currency: form.currency,
       spent_on: form.spentOn,
       encrypted_note,
       is_recurring: form.isRecurring,
@@ -91,7 +95,7 @@ export default function Expenses() {
   }
 
   function budgetFor(category) {
-    return budgets.find((b) => b.category === category)
+    return currencyBudgets.find((b) => b.category === category)
   }
 
   const filteredExpenses = useMemo(() => {
@@ -103,6 +107,14 @@ export default function Expenses() {
   return (
     <div className="screen">
       <h1 className="display" style={{ fontSize: 22, marginBottom: 4 }}>Expenses</h1>
+
+      <div className="chip-row" style={{ marginBottom: 16 }}>
+        {CURRENCIES.map((c) => (
+          <button key={c.code} className={`chip ${currency === c.code ? 'active' : ''}`} onClick={() => setCurrency(c.code)}>
+            {c.label}
+          </button>
+        ))}
+      </div>
 
       <div className="month-nav">
         <button className="icon-btn" style={{ fontSize: 20 }} onClick={() => shiftMonth(-1)}>‹</button>
@@ -123,13 +135,13 @@ export default function Expenses() {
             ))
           )}
         </select>
-        <button className="icon-btn" style={{ fontSize: 20 }} onClick={() => shiftMonth(1)} disabled={isCurrentMonth && false}>›</button>
+        <button className="icon-btn" style={{ fontSize: 20 }} onClick={() => shiftMonth(1)}>›</button>
       </div>
 
       <div className="stat-row">
         <div className="stat-card">
           <div className="label">{monthLabel}</div>
-          <div className="value">{formatMoney(monthTotal)}</div>
+          <div className="value">{formatMoney(monthTotal, currency)}</div>
         </div>
         <div className="stat-card">
           <div className="label">Transactions</div>
@@ -139,7 +151,7 @@ export default function Expenses() {
 
       {byCategory.length > 0 && (
         <>
-          <ExpenseChart data={byCategory} />
+          <ExpenseChart data={byCategory} currency={currency} />
           <div className="group" style={{ marginTop: 4 }}>
             {byCategory.map((c) => {
               const bud = budgetFor(c.category)
@@ -152,11 +164,11 @@ export default function Expenses() {
                     <div className="row-title">{c.category}</div>
                     {bud && (
                       <div className="row-subtitle" style={{ color: overBudget ? 'var(--danger)' : nearBudget ? '#E8A65C' : 'var(--text-muted)' }}>
-                        {overBudget ? 'Over budget · ' : nearBudget ? 'Near limit · ' : ''}budget {formatMoney(bud.monthly_limit)}
+                        {overBudget ? 'Over budget · ' : nearBudget ? 'Near limit · ' : ''}budget {formatMoney(bud.monthly_limit, currency)}
                       </div>
                     )}
                   </div>
-                  <span className="row-value expense">{formatMoney(c.total)}</span>
+                  <span className="row-value expense">{formatMoney(c.total, currency)}</span>
                 </div>
               )
             })}
@@ -171,7 +183,7 @@ export default function Expenses() {
       {monthExpenses.length === 0 ? (
         <div className="empty-state">
           <div className="glyph">💳</div>
-          <p>No expenses logged for {monthLabel}.</p>
+          <p>No {currency} expenses logged for {monthLabel}.</p>
         </div>
       ) : filteredExpenses.length === 0 ? (
         <div className="empty-state">
@@ -187,14 +199,14 @@ export default function Expenses() {
                 <div className="row-title">{e.category}{e.is_recurring ? ' · recurring' : ''}</div>
                 <div className="row-subtitle">{new Date(e.spent_on).toLocaleDateString()}</div>
               </div>
-              <span className="row-value expense">-{formatMoney(e.amount)}</span>
+              <span className="row-value expense">-{formatMoney(e.amount, currency)}</span>
             </div>
           ))}
         </div>
       )}
 
       <button className="fab" onClick={() => setShowForm(true)}>+</button>
-      {showForm && <ExpenseFormSheet onClose={() => setShowForm(false)} onSave={handleSaveExpense} />}
+      {showForm && <ExpenseFormSheet defaultCurrency={currency} onClose={() => setShowForm(false)} onSave={handleSaveExpense} />}
       <Toast message={toast} onDone={() => setToast('')} />
     </div>
   )

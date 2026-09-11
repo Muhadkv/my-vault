@@ -88,10 +88,16 @@ export default function Loans() {
     return { activeLoans: sortLoans(active, sortBy), paidLoans: sortLoans(paidOff, sortBy) }
   }, [loans, payments, query, sortBy])
 
-  const chartData = useMemo(
-    () => activeLoans.map((l) => ({ name: l.lender_name, paid: paidFor(l), remaining: remainingFor(l) })),
-    [activeLoans, payments]
-  )
+  const chartData = useMemo(() => {
+    const grouped = {}
+    activeLoans.forEach((l) => {
+      const key = l.lender_name.trim()
+      if (!grouped[key]) grouped[key] = { name: key, paid: 0, remaining: 0 }
+      grouped[key].paid += paidFor(l)
+      grouped[key].remaining += remainingFor(l)
+    })
+    return Object.values(grouped).sort((a, b) => b.remaining - a.remaining)
+  }, [activeLoans, payments])
 
   async function handleSaveLoan(form) {
     const encrypted_notes = form.notes ? await encrypt({ notes: form.notes }) : null
