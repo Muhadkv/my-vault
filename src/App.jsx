@@ -6,6 +6,7 @@ import Auth from './pages/Auth'
 import Unlock from './pages/Unlock'
 import Vault from './pages/Vault'
 import Expenses from './pages/Expenses'
+import Loans from './pages/Loans'
 import Settings from './pages/Settings'
 import BottomNav from './components/BottomNav'
 import Sidebar from './components/Sidebar'
@@ -27,6 +28,7 @@ function Gate() {
         <Routes>
           <Route path="/vault" element={<Vault />} />
           <Route path="/expenses" element={<Expenses />} />
+          <Route path="/loans" element={<Loans />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="*" element={<Navigate to="/vault" replace />} />
         </Routes>

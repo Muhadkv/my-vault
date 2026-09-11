@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext'
 const tabs = [
   { to: '/vault', icon: '🔐', label: 'Vault' },
   { to: '/expenses', icon: '💳', label: 'Expenses' },
+  { to: '/loans', icon: '🤝', label: 'Loans' },
   { to: '/settings', icon: '⚙️', label: 'Settings' },
 ]
 
